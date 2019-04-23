@@ -16,6 +16,8 @@ import android.view.MenuItem;
 import android.view.View;
 
 import com.example.evaconnolly.electronicsstore.Fragments.BrowseProductFragment;
+import com.example.evaconnolly.electronicsstore.Fragments.CreateProductFragment;
+import com.example.evaconnolly.electronicsstore.Fragments.ReviewFragment;
 import com.example.evaconnolly.electronicsstore.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -97,10 +99,25 @@ public class MainActivity extends AppCompatActivity {
     public void MainActivity(MenuItem item) {
         switch(item.getItemId()){
             case R.id.navBrowseProducts:
-            getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new BrowseProductFragment()).commit();
-            break;
+                getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new BrowseProductFragment()).commit();
+                 break;
+
+            case R.id.navLogout:
+                mAuth.signOut();
+                BackToStart();
+                break;
+
+            case R.id.navReview:
+                getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new ReviewFragment()).commit();
+                break;
+
+            case R.id.navCreateProduct:
+                getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new CreateProductFragment()).commit();
         }
 
+    }
+
+    private void BackToStart() {
     }
 
     private void getAccountType(){
