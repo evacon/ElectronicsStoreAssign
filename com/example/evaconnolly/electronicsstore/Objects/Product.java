@@ -5,20 +5,22 @@ public class Product {
     private String id;
     private String title;
     private String manufacturer;
-    private int price;
+    private String price;
     private String imageUrl;
-    private int quantity;
+    private String quantity;
+    private String category;
 
     public Product(){
     }
 
-    public Product(String id, String title, String manufacturer, int price, String imageUrl, int quantity){
+    public Product(String id, String title, String manufacturer, String price, String imageUrl, String quantity){
         this.id = id;
         this.title = title;
         this.manufacturer = manufacturer;
         this.price = price;
         this.imageUrl = imageUrl;
         this.quantity = quantity;
+        this.category = category;
     }
 
     public String getId() {
@@ -45,11 +47,11 @@ public class Product {
         this.manufacturer = manufacturer;
     }
 
-    public int getPrice() {
+    public String  getPrice() {
         return price;
     }
 
-    public void setPrice(int price) {
+    public void setPrice(String price) {
         this.price = price;
     }
 
@@ -61,12 +63,19 @@ public class Product {
         this.imageUrl = imageUrl;
     }
 
-    public int getQuantity() {
+    public String getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(String quantity) {
         this.quantity = quantity;
+    }
+
+    public String getCatgeory(){
+        return category;}
+
+    public void setCategory(){
+        this.category = category;
     }
 
 

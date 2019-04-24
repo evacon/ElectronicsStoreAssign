@@ -10,9 +10,11 @@ import android.support.v4.app.FragmentManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.example.evaconnolly.electronicsstore.R;
@@ -42,9 +44,10 @@ public class CreateProductFragment extends Fragment {
     private StorageReference ProductReference;
     private String current_user_id;
     private DatabaseReference ProductRef, SaveProductRef;
-    private String productTitle ,productManufacturer, productPrice, productQuantity;
+    private String productTitle ,productManufacturer, productPrice, productQuantity, categorySpinner;
     private String saveThisDate, saveThisTime, productDetails, downloadUrl, currentUser;
     private FirebaseAuth mAuth;
+    private Spinner mySpinner;
 
     private static final int image_pick = 1;
     private Uri ImageUri;
@@ -65,7 +68,12 @@ public class CreateProductFragment extends Fragment {
         Manufacturer = (EditText) view.findViewById(R.id.manufacturer);
         Price = (EditText) view.findViewById(R.id.price);
         Quantity = (EditText) view.findViewById(R.id.quantity);
+        mySpinner = (Spinner) view.findViewById(R.id.categorySpinner);
 
+        Spinner dropdown = view.findViewById(R.id.categorySpinner);
+        String[] categories = new String[]{"Headphones", "Earphones", "Activity Watch", "Speakers"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_dropdown_item, categories);
+        dropdown.setAdapter(adapter);
 
         ProductReference = FirebaseStorage.getInstance().getReference();
 
@@ -97,6 +105,7 @@ public class CreateProductFragment extends Fragment {
         productManufacturer = Manufacturer.getText().toString();
         productQuantity = Quantity.getText().toString();
         productPrice = Price.getText().toString();
+        categorySpinner = mySpinner.getSelectedItem().toString();
 
         if(ImageUri == null){
             Toast.makeText(getActivity(), "You need to include a picture of the product..", Toast.LENGTH_SHORT).show();
@@ -107,7 +116,7 @@ public class CreateProductFragment extends Fragment {
         else if(productManufacturer == null){
             Toast.makeText(getActivity(), "You need to include a manufacturer for the product..", Toast.LENGTH_SHORT).show();
         }
-        else if(productPrice == null){
+        else if(productPrice== null ){
             Toast.makeText(getActivity(), "You need to include a price for the product..", Toast.LENGTH_SHORT).show();
         }
         else if(productQuantity == null){
@@ -161,7 +170,7 @@ public class CreateProductFragment extends Fragment {
                 }
                 else{
                     String message = task.getException().getMessage();
-                    Toast.makeText(getActivity(), "Error occured: " + message, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "Error occurred: " + message, Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -172,11 +181,12 @@ public class CreateProductFragment extends Fragment {
     private void SavePostInfo() {
 
         HashMap productMap = new HashMap();
-        productMap.put("Title", productTitle);
-        productMap.put("Manufacturer", productManufacturer);
-        productMap.put("Price", productPrice);
-        productMap.put("Quantity", productQuantity);
-        productMap.put("Product Image", downloadUrl);
+        productMap.put("title", productTitle);
+        productMap.put("manufacturer", productManufacturer);
+        productMap.put("price", productPrice);
+        productMap.put("quantity", productQuantity);
+        productMap.put("productimage", downloadUrl);
+        productMap.put("category", categorySpinner);
         ProductRef.child(productDetails).updateChildren(productMap).addOnCompleteListener(new OnCompleteListener() {
             @Override
             public void onComplete(@NonNull Task task) {
@@ -184,11 +194,11 @@ public class CreateProductFragment extends Fragment {
                     BrowseProductFragment browseProductFragment = new BrowseProductFragment();
                     FragmentManager fragmentManager = getFragmentManager();
                     fragmentManager.beginTransaction().replace(R.id.mainContainer, browseProductFragment).commit();
-                    Toast.makeText(getActivity(), "New product has been updated successfully tnx", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "New product has been updated successfully", Toast.LENGTH_SHORT).show();
 
                 }
                 else{
-                    Toast.makeText(getActivity(), "Error occured sry", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getActivity(), "Error uploading product", Toast.LENGTH_SHORT).show();
                 }
             }
         });

@@ -18,6 +18,7 @@ import android.view.View;
 import com.example.evaconnolly.electronicsstore.Fragments.BrowseProductFragment;
 import com.example.evaconnolly.electronicsstore.Fragments.CreateProductFragment;
 import com.example.evaconnolly.electronicsstore.Fragments.ReviewFragment;
+import com.example.evaconnolly.electronicsstore.Fragments.SearchFragment;
 import com.example.evaconnolly.electronicsstore.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -79,13 +80,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-   /* private void BackToStart() {
-        Intent homeIntent = new Intent(MainActivity.this, StartActivity.class);
-        homeIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(homeIntent);
-        finish();
-    }*/
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
 
@@ -113,6 +107,10 @@ public class MainActivity extends AppCompatActivity {
 
             case R.id.navCreateProduct:
                 getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new CreateProductFragment()).commit();
+                break;
+
+            case R.id.navSearch:
+                getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new SearchFragment()).commit();
         }
 
     }
