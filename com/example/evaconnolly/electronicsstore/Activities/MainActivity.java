@@ -15,10 +15,12 @@ import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.example.evaconnolly.electronicsstore.Fragments.AllCustomersFragment;
 import com.example.evaconnolly.electronicsstore.Fragments.BrowseProductFragment;
 import com.example.evaconnolly.electronicsstore.Fragments.CreateProductFragment;
 import com.example.evaconnolly.electronicsstore.Fragments.ReviewFragment;
 import com.example.evaconnolly.electronicsstore.Fragments.SearchFragment;
+import com.example.evaconnolly.electronicsstore.Fragments.ShoppingCartFragment;
 import com.example.evaconnolly.electronicsstore.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -37,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private Toolbar mainToolbar;
     private FirebaseAuth mAuth;
     DatabaseReference userDetails;
+    public static Bundle myBundle = new Bundle();
 
     public MainActivity(){
 
@@ -97,9 +100,9 @@ public class MainActivity extends AppCompatActivity {
                  break;
 
             case R.id.navLogout:
-                mAuth.signOut();
-                BackToStart();
-                break;
+                FirebaseAuth.getInstance().signOut();
+                Intent i=new Intent(getApplicationContext(),LoginActivity.class);
+                startActivity(i);
 
             case R.id.navReview:
                 getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new ReviewFragment()).commit();
@@ -111,6 +114,17 @@ public class MainActivity extends AppCompatActivity {
 
             case R.id.navSearch:
                 getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new SearchFragment()).commit();
+                break;
+
+            case R.id.navShoppingCart:
+                getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new ShoppingCartFragment()).commit();
+                break;
+
+            case R.id.navAllCustomers:
+                getSupportFragmentManager().beginTransaction().replace(R.id.mainContainer, new AllCustomersFragment()).commit();
+                break;
+
+
         }
 
     }
