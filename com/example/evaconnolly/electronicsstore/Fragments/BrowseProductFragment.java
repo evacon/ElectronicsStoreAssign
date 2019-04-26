@@ -1,266 +1,192 @@
 package com.example.evaconnolly.electronicsstore.Fragments;
 
-import android.content.Context;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.support.v4.app.FragmentManager;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageButton;
-import android.widget.ImageView;
+import android.widget.EditText;
 import android.widget.Spinner;
-import android.widget.TextView;
+
+import com.example.evaconnolly.electronicsstore.Adapters.ProductAdapter;
 import com.example.evaconnolly.electronicsstore.Objects.Product;
-import com.example.evaconnolly.electronicsstore.Objects.ShoppingCart;
 import com.example.evaconnolly.electronicsstore.R;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
-import com.firebase.ui.database.FirebaseRecyclerAdapter;
-import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
-import com.squareup.picasso.Picasso;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class BrowseProductFragment extends Fragment {
 
-    private RecyclerView productList;
-    private DatabaseReference ProductRef, RefineRef, cartRef;
-    private Spinner mySpinner;
-    private Button refineButton;
-    private String refineSpinner;
-    private Query query;
-    private FirebaseAuth mAuth;
-    private FirebaseUser mUser;
-    private ImageButton cart;
-    private static AdapterView.OnItemClickListener onItemClickListener;
+    private EditText mSearch;
+    private RecyclerView productRecyclerView;
+    private ProductAdapter productAdapter;
+    private RecyclerView.LayoutManager productLayoutManager;
+    DividerItemDecoration dividerItemDecoration;
+    Spinner spinner;
+    private ArrayList<Product> productsList = new ArrayList<>();
+    private ArrayList resultProducts = new ArrayList<Product>();
+    private ArrayList<Product> getDataSetHistory() {
+        return resultProducts;
+    }
+    private static final String[]order = {"ascending" , "descending"};
+    String categorySpinner, downloadUrl;
+
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState){
         View view = inflater.inflate(R.layout.fragment_browse_product, container, false);
-        productList = view.findViewById(R.id.update_product_view);
 
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getActivity());
-        productList.setLayoutManager(layoutManager);
-        ProductRef = FirebaseDatabase.getInstance().getReference().child("Products");
-        mySpinner = (Spinner) view.findViewById(R.id.refineSpinner);
-        refineButton = (Button) view.findViewById(R.id.refine);
-       cart = (ImageButton) view.findViewById(R.id.imageButton);
+        productRecyclerView = (RecyclerView)view.findViewById(R.id.update_product_view);
+        productRecyclerView.setNestedScrollingEnabled(true);
+        productRecyclerView.setHasFixedSize(true);
 
-        mAuth = FirebaseAuth.getInstance();
-        mUser = mAuth.getCurrentUser();
+        productLayoutManager = new LinearLayoutManager(getActivity());
+        productRecyclerView.setLayoutManager(productLayoutManager);
+        productAdapter = new ProductAdapter(getDataSetHistory(), getActivity());
+        productRecyclerView.setAdapter(productAdapter);
 
-        RefineRef = FirebaseDatabase.getInstance().getReference();
+        dividerItemDecoration = new DividerItemDecoration(productRecyclerView.getContext(), LinearLayoutManager.VERTICAL);
+        productRecyclerView.addItemDecoration(dividerItemDecoration);
 
-        Spinner dropdown = view.findViewById(R.id.refineSpinner);
-        String[] refineBy = new String []{"All", "Earphones", "Headphones"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_dropdown_item, refineBy);
-        dropdown.setAdapter(adapter);
-        refineSpinner = mySpinner.getSelectedItem().toString();
-        query = RefineRef.child("Products").orderByChild("category").equalTo(refineSpinner);
+        getProductIds();
 
-        refineButton.setOnClickListener(new View.OnClickListener(){
+
+        mSearch = (EditText)view.findViewById(R.id.search);
+        mSearch.addTextChangedListener(new TextWatcher() {
             @Override
-            public void onClick(View v){
-                refineProducts();
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+                filter(editable.toString());
             }
         });
+        spinner = (Spinner)view.findViewById(R.id.orderSpinner);
+        ArrayAdapter<String>adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, order);
 
-      /* cart.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v){
-
-                final String title = getRef(position).getKey();
-                final String manufacturer = getRef(position).getKey();
-                final String price = getRef(position).getKey();
-                final String quantity = getRef(position).getKey();
-
-                ShoppingCartFragment shoppingCartFragment = new ShoppingCartFragment();
-                Bundle bund = new Bundle();
-                bund.putString("vk1", title);
-                bund.putString("vk2", manufacturer);
-                bund.putString("vk3", price);
-                bund.putString("vk4", quantity);
-                shoppingCartFragment.setArguments(bund);
-
-                FragmentManager fragmentManager = getFragmentManager();
-                fragmentManager.beginTransaction().replace(R.id.mainContainer, shoppingCartFragment).commit();
-            }
-        });*/
-
-        DisplayProducts();
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.getSelectedItem().toString();
 
         return view;
     }
 
-    private void refineProducts() {
-        System.out.println("refineProducts();");
+    public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
 
-        query.addListenerForSingleValueEvent(new ValueEventListener() {
+        switch (position) {
+            case 0:
+                Collections.sort(resultProducts, new Comparator<Product>() {
+                    @Override
+                    public int compare(Product product, Product t1) {
+                        return product.getTitle().compareToIgnoreCase(t1.getTitle());
+                    }
+                    @Override
+                    public Comparator<Product> reversed() {
+                        return null;
+                    }
+                });
+                productAdapter.notifyDataSetChanged();
+                break;
+            case 1:
+                Collections.reverse(resultProducts);break;
+        }
+        productAdapter.notifyDataSetChanged();
+    }
+
+    private void getProductIds() {
+
+        DatabaseReference ProductRef = FirebaseDatabase.getInstance().getReference().child("Products");
+        ProductRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                System.out.println("onDataChange");
-                System.out.println(refineSpinner);
-
-                if(refineSpinner.equals("All")){
-                    System.out.println("displaying all");
-                    DisplayProducts();
-                }
-                else{
-                    System.out.println("Displaying filtered");
-                  //  FilterProducts();
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    for(DataSnapshot products : dataSnapshot.getChildren()){
+                        getProductInfo(products.getKey());
+                    }
                 }
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
+            public void onCancelled(DatabaseError databaseError) {
+
             }
         });
     }
 
-   /* private void FilterProducts() {FirebaseRecyclerOptions<Product> options =
-            new FirebaseRecyclerOptions.Builder<Product>()
-                    .setQuery(query, Product.class)
-                    .build();
+    private void filter(String s) {
 
-        FirebaseRecyclerAdapter<Product, ProductViewHolder> firebaseRecyclerAdapter = new FirebaseRecyclerAdapter<Product, ProductViewHolder>(options)
-        {
-            @Override
-            protected void onBindViewHolder(@NonNull ProductViewHolder holder, int position, @NonNull Product model){
-                System.out.println("made it to the onbindviewholder");
-                holder.setTitle(model.getTitle());
-                holder.setManufacturer(model.getManufacturer());
-                holder.setPrice(model.getPrice());
-                holder.setImageUrl(getActivity().getApplicationContext(), model.getImageUrl());
-
-                final String title = getRef(position).getKey();
-                final String manufacturer = getRef(position).getKey();
-                final String price = getRef(position).getKey();
-                final String quantity = getRef(position).getKey();
-
-                holder.itemView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        System.out.println("made it to the onclick");
-                        ShoppingCartFragment shoppingCartFragment = new ShoppingCartFragment();
-                        Bundle bund = new Bundle();
-                        bund.putString("vk1", title);
-                        bund.putString("vk2", manufacturer);
-                        bund.putString("vk3", price);
-                        bund.putString("vk4", quantity);
-                        shoppingCartFragment.setArguments(bund);
-
-                        FragmentManager fragmentManager = getFragmentManager();
-                        fragmentManager.beginTransaction().replace(R.id.mainContainer, shoppingCartFragment).commit();
-                    }
-                });
+        List<Product> temp = new ArrayList<>();
+        for(Product product : productsList){
+            if(product.getTitle().toLowerCase().contains(s)){
+                temp.add(product);
             }
-
-            @NonNull
-            @Override
-            public ProductViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int i){
-                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.all_products_layout, parent, false);
-                return new ProductViewHolder(view);
+            if(product.getTitle().toLowerCase().contains(s)){
+                temp.add(product);
             }
-        };
-        productList.setAdapter(firebaseRecyclerAdapter);
-        firebaseRecyclerAdapter.startListening();
-    }*/
-
-
-    private void DisplayProducts() {FirebaseRecyclerOptions<Product> options =
-            new FirebaseRecyclerOptions.Builder<Product>()
-                .setQuery(ProductRef, Product.class)
-                .build();
-
-    FirebaseRecyclerAdapter<Product, ProductViewHolder> firebaseRecyclerAdapter = new FirebaseRecyclerAdapter<Product, ProductViewHolder>(options)
-        {            @NonNull
-            @Override
-            public ProductViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int i){
-                View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.all_products_layout, parent, false);
-                return new ProductViewHolder(view);
-            }
-
-            @Override
-            protected void onBindViewHolder(@NonNull ProductViewHolder holder, int position, @NonNull Product model){
-                System.out.println("made it into the onbindviewholder in displayproducts");
-                holder.setTitle(model.getTitle());
-                holder.setManufacturer(model.getManufacturer());
-                holder.setPrice(model.getPrice());
-                holder.setImageUrl(getActivity().getApplicationContext(), model.getImageUrl());
-
-                final String title = getRef(position).getKey();
-                final String manufacturer = getRef(position).getKey();
-                final String price = getRef(position).getKey();
-                final String quantity = getRef(position).getKey();
-
-                holder.itemView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        System.out.println("made it to the onclick");
-                        ShoppingCartFragment shoppingCartFragment = new ShoppingCartFragment();
-                        Bundle bund = new Bundle();
-                        bund.putString("vk1", title);
-                        bund.putString("vk2", manufacturer);
-                        bund.putString("vk3", price);
-                        bund.putString("vk4", quantity);
-                        shoppingCartFragment.setArguments(bund);
-
-                        FragmentManager fragmentManager = getFragmentManager();
-                        fragmentManager.beginTransaction().replace(R.id.mainContainer, shoppingCartFragment).commit();
-                    }
-                });
-            }
-        };
-        productList.setAdapter(firebaseRecyclerAdapter);
-        firebaseRecyclerAdapter.startListening();
+        }
+        productAdapter.updateList(temp);
     }
 
-    public static class ProductViewHolder extends RecyclerView.ViewHolder{
-        View myView;
+    private void getProductInfo(String key) {
 
-        public ProductViewHolder(final View itemView)
-        {
-            super(itemView);
-            myView = itemView;
-        }
+        DatabaseReference ProductInfoRef = FirebaseDatabase.getInstance().getReference().child("Products").child(key);
+        ProductInfoRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists()){
+                    String title = dataSnapshot.getKey().toString();
+                    String manufacturer = "";
+                    String price = "";
+                    String quantity = "";
+                    if(dataSnapshot.child("title").getValue() != null){
+                        title = dataSnapshot.child("Title").getValue().toString();
+                    }
+                    if(dataSnapshot.child("manufacturer").getValue() != null){
+                        manufacturer = dataSnapshot.child("Manufacturer").getValue().toString();
+                    }
+                    if(dataSnapshot.child("price").getValue() != null){
+                        price = dataSnapshot.child("Price").getValue().toString();
+                    }
+                    if(dataSnapshot.child("quantity").getValue() != null){
+                        price = dataSnapshot.child("Quantity").getValue().toString();
+                    }
 
-        public void setTitle(String title){
-            TextView productTitle = (TextView) myView.findViewById(R.id.title);
-            productTitle.setText(title);
-        }
+                    Product product = new Product(title, manufacturer, price, downloadUrl, quantity, categorySpinner);
+                    resultProducts.add(product);
+                    productsList.add(product);
+                    productAdapter.notifyDataSetChanged();
+                    System.out.println(resultProducts);
+                }
+            }
 
-        public void setManufacturer(String manufacturer){
-            TextView productManufacturer = (TextView) myView.findViewById(R.id.manufacturer);
-            productManufacturer.setText(manufacturer);
-        }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
-        public void setPrice(String price){
-            TextView productPrice = (TextView) myView.findViewById(R.id.price);
-            productPrice.setText(price);
-        }
-
-       /* public void setQuantity(String quantity){
-            TextView productQuantity = (TextView) myView.findViewById(R.id.quantity);
-            productQuantity.setText(quantity);
-        }*/
-
-       public void setImageUrl(Context context, String image){
-            ImageView productImage = (ImageView) myView.findViewById(R.id.image);
-            Picasso.with(context).load(image).into(productImage);
-        }
-
+            }
+        });
     }
 }
