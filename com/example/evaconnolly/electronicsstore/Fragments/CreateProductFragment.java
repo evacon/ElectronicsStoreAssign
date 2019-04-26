@@ -1,12 +1,10 @@
 package com.example.evaconnolly.electronicsstore.Fragments;
 
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,23 +15,18 @@ import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import com.example.evaconnolly.electronicsstore.Objects.Product;
 import com.example.evaconnolly.electronicsstore.R;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
-
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.HashMap;
-
 import static android.app.Activity.RESULT_OK;
 
 public class CreateProductFragment extends Fragment {
@@ -42,10 +35,11 @@ public class CreateProductFragment extends Fragment {
     private ImageButton imageButton;
     private EditText Title, Manufacturer, Price, Quantity;
     private StorageReference ProductReference;
-    private String current_user_id;
-    private DatabaseReference ProductRef, SaveProductRef;
+    private String title;
+    private FirebaseDatabase mFirebaseDatabase;
+    private DatabaseReference databaseProduct;
     private String productTitle ,productManufacturer, productPrice, productQuantity, categorySpinner;
-    private String saveThisDate, saveThisTime, productDetails, downloadUrl, currentUser;
+    private String downloadUrl, currentUser;
     private FirebaseAuth mAuth;
     private Spinner mySpinner;
 
@@ -70,14 +64,15 @@ public class CreateProductFragment extends Fragment {
         Quantity = (EditText) view.findViewById(R.id.quantity);
         mySpinner = (Spinner) view.findViewById(R.id.categorySpinner);
 
-        Spinner dropdown = view.findViewById(R.id.categorySpinner);
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
+        databaseProduct = mFirebaseDatabase.getReference();
+
+        Spinner dropdown = mySpinner;
         String[] categories = new String[]{"Headphones", "Earphones", "Activity Watch", "Speakers"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_dropdown_item, categories);
         dropdown.setAdapter(adapter);
 
         ProductReference = FirebaseStorage.getInstance().getReference();
-
-        ProductRef = FirebaseDatabase.getInstance().getReference().child("Products");
         mAuth = FirebaseAuth.getInstance();
 
         currentUser= mAuth.getCurrentUser().getUid();
@@ -144,21 +139,12 @@ public class CreateProductFragment extends Fragment {
             ImageUri = data.getData();
             imageButton.setImageURI(ImageUri);
         }
-
     }
 
     private void saveProduct() {
-        Calendar mDate = Calendar.getInstance();
-        SimpleDateFormat currentDate = new SimpleDateFormat("dd-MMMM-yyyy");
-        saveThisDate = currentDate.format(mDate.getTime()); //get current date and save in saveThisDate
+        title = Title.getText().toString().trim();
 
-        Calendar mTime = Calendar.getInstance();
-        SimpleDateFormat currentTime = new SimpleDateFormat("HH:mm");
-        saveThisTime = currentTime.format(mTime.getTime());
-
-        productDetails = saveThisDate + saveThisTime;
-
-        StorageReference filePath = ProductReference.child("Product Images").child(ImageUri.getLastPathSegment() + productDetails + "jpg");
+        StorageReference filePath = ProductReference.child("Product Images").child(ImageUri.getLastPathSegment() + title + "jpg");
         filePath.putFile(ImageUri).addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>(){
             @Override
             public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task){
@@ -166,7 +152,7 @@ public class CreateProductFragment extends Fragment {
 
                     downloadUrl = task.getResult().getStorage().getDownloadUrl().toString();
                     Toast.makeText(getActivity(), "Image uploaded successfully", Toast.LENGTH_SHORT).show();
-                    SavePostInfo();
+                    saveProducts();
                 }
                 else{
                     String message = task.getException().getMessage();
@@ -178,30 +164,24 @@ public class CreateProductFragment extends Fragment {
 
     }
 
-    private void SavePostInfo() {
+    private void saveProducts(){
+        String title = Title.getText().toString().trim();
+        String manufacturer = Manufacturer.getText().toString().trim();
+        String price = Price.getText().toString().trim();
+        String quantity = Quantity.getText().toString().trim();
+        categorySpinner = mySpinner.getSelectedItem().toString();
 
-        HashMap productMap = new HashMap();
-        productMap.put("title", productTitle);
-        productMap.put("manufacturer", productManufacturer);
-        productMap.put("price", productPrice);
-        productMap.put("quantity", productQuantity);
-        productMap.put("productimage", downloadUrl);
-        productMap.put("category", categorySpinner);
-        ProductRef.child(productDetails).updateChildren(productMap).addOnCompleteListener(new OnCompleteListener() {
+        Product product = new Product(title, manufacturer, price, downloadUrl, quantity, categorySpinner);
+
+        FirebaseUser user = mAuth.getCurrentUser();
+        String userId = user.getUid();
+
+        databaseProduct.child("Products").child(title).setValue(product).addOnSuccessListener(new OnSuccessListener<Void>(){
             @Override
-            public void onComplete(@NonNull Task task) {
-                if(task.isSuccessful()){
-                    BrowseProductFragment browseProductFragment = new BrowseProductFragment();
-                    FragmentManager fragmentManager = getFragmentManager();
-                    fragmentManager.beginTransaction().replace(R.id.mainContainer, browseProductFragment).commit();
-                    Toast.makeText(getActivity(), "New product has been updated successfully", Toast.LENGTH_SHORT).show();
-
-                }
-                else{
-                    Toast.makeText(getActivity(), "Error uploading product", Toast.LENGTH_SHORT).show();
-                }
+            public void onSuccess(Void aVoid){
+                Toast.makeText(getActivity(), "saved", Toast.LENGTH_LONG).show();
             }
         });
-    }
 
+    }
 }
